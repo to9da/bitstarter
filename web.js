@@ -11,7 +11,26 @@ app.get('/', function(request, response) {
   response.send(buf.toString());
 });
 
-var port = process.env.PORT || 5000;
+app.get('/pics/pic1.jpg', function(request, response) {
+  var img = fs.readFileSync('./pics/pic1.jpg');
+  response.writeHead(200, {'Content-Type': 'image/jpg' });
+  response.end(img, 'binary');
+});
+
+app.get('/pics/pic2.jpg', function(request, response) {
+    var img = fs.readFileSync('./pics/pic2.jpg');
+      response.writeHead(200, {'Content-Type': 'image/jpg' });
+        response.end(img, 'binary');
+});
+
+app.get('/pics/pic3.jpg', function(request, response) {
+    var img = fs.readFileSync('./pics/pic3.jpg');
+      response.writeHead(200, {'Content-Type': 'image/jpg' });
+        response.end(img, 'binary');
+});
+
+
+var port = process.env.PORT || 8080;
 app.listen(port, function() {
   console.log("Listening on " + port);
 });
