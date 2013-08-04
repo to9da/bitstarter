@@ -24,8 +24,12 @@ References:
 var fs = require('fs');
 var program = require('commander');
 var cheerio = require('cheerio');
-var HTMLFILE_DEFAULT = "index.html";
-var CHECKSFILE_DEFAULT = "checks.json";
+var rest = require('restler');
+var HTMLFILE_DEFAULT = 'index.html';
+var CHECKSFILE_DEFAULT = 'checks.json';
+var HTMLURL_DEFAULT = 'http://quiet-garden-2361.herokuapp.com/';
+
+var checksfile_location = '';
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -61,14 +65,47 @@ var clone = function(fn) {
     return fn.bind({});
 };
 
+var processUrl = function(result) {
+    if (result instanceof Error) {
+        console.log('URL %s caused error at cheerio: %s', inurlstr, result.message);
+        process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
+    } else {
+        //console.log(result);
+        $ = cheerio.load(result);
+        var checks = loadChecks(checksfile_location).sort();
+        var out = {};
+        for(var ii in checks) {
+          var present = $(checks[ii]).length > 0;
+          out[checks[ii]] = present;
+        }
+        var outJson = JSON.stringify(out, null, 4);
+        console.log(outJson);
+    }
+}
+
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists))
+        .option('-u, --url <html_url>', 'URL of index.html')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+    if (program.file && program.url) {
+        console.log('Sorry, this script allows only one option either file or url.');
+        process.exit(1);
+    }
+    if (!program.file && !program.url) {
+        console.log('You must enter either file or url to run this script.');
+        process.exit(1);
+    }
+    if (program.file) {
+        var checkJson = checkHtmlFile(program.file, program.checks);
+        var outJson = JSON.stringify(checkJson, null, 4);
+        console.log(outJson);
+    }
+    if (program.url) {
+        checksfile_location = program.checks;
+        rest.get(program.url.toString()).on('complete', processUrl);
+    }
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
